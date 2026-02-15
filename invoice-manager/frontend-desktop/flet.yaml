@@ -1,0 +1,14 @@
+name: InvoiceManager
+description: Számla kezelő alkalmazás
+version: 0.1.0
+author: Your Name
+
+# Icon paths (will be added later)
+# icons:
+#   windows: assets/icon.ico
+#   macos: assets/icon.icns
+
+# Windows specific settings
+windows:
+  # icon: assets/icon.ico
+  console: false

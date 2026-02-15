@@ -1,0 +1,37 @@
+# Flask and extensions
+Flask==3.1.0
+Flask-CORS==5.0.0
+Flask-SQLAlchemy==3.1.1
+
+# Database
+SQLAlchemy==2.0.36
+alembic==1.14.0
+
+# Gmail API
+google-api-python-client==2.154.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+
+# PDF processing
+PyPDF2==3.0.1
+pdfplumber==0.11.4
+
+# QR code generation
+segno==1.6.1
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Date/time handling
+python-dateutil==2.9.0
+
+# HTTP requests
+requests==2.32.3
+
+# Testing
+pytest==8.3.4
+pytest-flask==1.3.0
+
+# Code quality
+black==24.10.0
+flake8==7.1.1

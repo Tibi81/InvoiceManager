@@ -1,0 +1,8 @@
+# Flet framework
+flet==0.21.2
+
+# API requests
+requests==2.31.0
+
+# Date/time handling
+python-dateutil==2.8.2
