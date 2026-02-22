@@ -13,18 +13,44 @@ const formatAmount = (amount, currency = 'HUF') => {
   return new Intl.NumberFormat('hu-HU').format(amount) + ' ' + currency
 }
 
+/** Napok száma a határidő és ma között. Pozitív = még hátra van, negatív = lejárt. */
+function getDaysUntilDue(dueDateStr) {
+  const due = new Date(dueDateStr)
+  const today = new Date()
+  due.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
+  return Math.floor((due - today) / (1000 * 60 * 60 * 24))
+}
+
+function getDueStatusText(dueDateStr, paid) {
+  if (paid) return null
+  const days = getDaysUntilDue(dueDateStr)
+  if (days > 0) return `${days} nap van hátra`
+  if (days < 0) return `${Math.abs(days)} nappal járt le`
+  return 'Ma esedékes'
+}
+
 const InvoiceCard = ({ invoice, onMarkPaid, onDelete, isMarkingPaid }) => {
   const [showQr, setShowQr] = useState(false)
+  const dueStatusText = getDueStatusText(invoice.due_date, invoice.paid)
 
   return (
     <div className="invoice-card">
       <div className="invoice-card-header">
         <h3>{invoice.name}</h3>
+        <span className={`badge status-${invoice.paid ? 'paid' : 'unpaid'}`}>
+          {invoice.paid ? 'Fizetve' : 'Fizetetlen'}
+        </span>
         {invoice.is_recurring && <span className="badge recurring">Ismétlődő</span>}
       </div>
       <div className="invoice-card-body">
         <p className="amount">{formatAmount(invoice.amount, invoice.currency)}</p>
         <p className="due-date">Esedékesség: {formatDate(invoice.due_date)}</p>
+        {dueStatusText && (
+          <p className={`due-status ${getDaysUntilDue(invoice.due_date) < 0 ? 'overdue' : ''}`}>
+            {dueStatusText}
+          </p>
+        )}
         {invoice.gmail_account_email && (
           <p className="account">📧 {invoice.gmail_account_email}</p>
         )}

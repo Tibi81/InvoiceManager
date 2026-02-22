@@ -33,6 +33,33 @@
   font-size: 0.75rem;
 }
 
+.badge.status-paid {
+  background: #e8f5e9;
+  color: #2e7d32;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.badge.status-unpaid {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.invoice-card-body .due-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 4px 0;
+  color: #1565c0;
+}
+
+.invoice-card-body .due-status.overdue {
+  color: #c62828;
+}
+
 .invoice-card-body {
   margin-bottom: 12px;
 }

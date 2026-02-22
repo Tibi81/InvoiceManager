@@ -78,6 +78,28 @@ def format_amount(amount: float, currency: str = "HUF") -> str:
     return f"{amount:,.0f}".replace(",", " ") + " " + currency
 
 
+def get_days_until_due(due_date_str: str) -> int:
+    """Days until due (positive = future, negative = overdue)."""
+    try:
+        due = datetime.fromisoformat(due_date_str.replace("Z", "+00:00")).date()
+    except Exception:
+        return 0
+    today = datetime.utcnow().date()
+    return (due - today).days
+
+
+def get_due_status_text(due_date_str: str, paid: bool) -> str | None:
+    """Return status text: X nap van hátra / X nappal járt le / Ma esedékes."""
+    if paid:
+        return None
+    days = get_days_until_due(due_date_str)
+    if days > 0:
+        return f"{days} nap van hátra"
+    if days < 0:
+        return f"{abs(days)} nappal járt le"
+    return "Ma esedékes"
+
+
 def main(page: ft.Page):
     """Main application."""
     page.title = "Számla Kezelő"
@@ -228,6 +250,9 @@ def main(page: ft.Page):
             )
         )
 
+        paid = invoice.get("paid", False)
+        due_status = get_due_status_text(invoice.get("due_date", ""), paid)
+
         return ft.Card(
             content=ft.Container(
                 content=ft.Column(
@@ -235,6 +260,16 @@ def main(page: ft.Page):
                         ft.Row(
                             [
                                 ft.Text(invoice["name"], size=16, weight=ft.FontWeight.W_600),
+                                ft.Container(
+                                    content=ft.Text(
+                                        "Fizetve" if paid else "Fizetetlen",
+                                        size=11,
+                                        color=ft.colors.GREEN_800 if paid else ft.colors.ORANGE_800,
+                                    ),
+                                    bgcolor=ft.colors.GREEN_50 if paid else ft.colors.ORANGE_50,
+                                    padding=ft.padding.symmetric(4, 8),
+                                    border_radius=4,
+                                ),
                                 *([ft.Container(
                                     content=ft.Text("Ismétlődő", size=11, color=ft.colors.BLUE_700),
                                     bgcolor=ft.colors.BLUE_50,
@@ -255,6 +290,13 @@ def main(page: ft.Page):
                             size=13,
                             color=ft.colors.GREY_700,
                         ),
+                        ft.Text(
+                            due_status,
+                            size=13,
+                            weight=ft.FontWeight.W_600,
+                            color=ft.colors.RED_700 if due_status and get_days_until_due(invoice.get("due_date", "")) < 0 else ft.colors.BLUE_700,
+                        )
+                        if due_status else ft.Container(height=0),
                         ft.Row(actions, wrap=True, spacing=8),
                         qr_container,
                     ],
