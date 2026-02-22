@@ -41,39 +41,35 @@ flet build linux
 ```
 frontend-desktop/
 ├── main.py           # Main application entry point
-├── components/       # Flet UI components (to be added)
-├── services/         # API service layer (to be added)
-├── assets/           # Icons and images
+├── services/
+│   └── api.py        # API client
+├── assets/            # Icons and images
 │   ├── icon.ico
 │   └── icon.png
-├── flet.yaml         # Build configuration
+├── flet.yaml          # Build configuration
 └── requirements.txt
 ```
+
+## Features
+
+- [x] Invoice list with tabs (Fizetetlen / Fizetett / Összes)
+- [x] Invoice cards: name, amount, due date
+- [x] Mark as paid
+- [x] QR code display (EPC)
+- [x] Payment link (opens in browser)
+- [x] Add new invoice (dialog form)
+- [x] Delete invoice (with confirmation)
 
 ## Development Notes
 
 - Backend connection: `http://localhost:5000`
-- Backend can be started automatically from the app
-- Material Design components
+- Backend can be started automatically from the app (type `start` when prompted)
+- Material Design components (Flet)
 - Cross-platform (Windows, macOS, Linux)
 
 ## Next Steps
 
-1. Create reusable UI components (`components/`)
-2. Implement API service layer (`services/api.py`)
-3. Build main screens (Dashboard, Settings, etc.)
-4. Add system tray integration
-5. Add desktop notifications
-6. Create app icon
-7. Set up build pipeline
-
-## Features to Implement
-
-- [ ] Invoice list view
-- [ ] Invoice details modal
-- [ ] QR code display
 - [ ] Gmail account management
 - [ ] Recurring invoices form
 - [ ] System tray icon
 - [ ] Desktop notifications
-- [ ] Auto-start with Windows
