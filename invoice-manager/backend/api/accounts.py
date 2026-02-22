@@ -226,7 +226,8 @@ def sync_account(account_id: int):
             max_results = int(payload.get("max_results", current_app.config.get("GMAIL_SYNC_MAX_RESULTS", 50)))
         except (TypeError, ValueError):
             return jsonify({"data": None, "error": "max_results must be an integer"}), 400
-        result = sync_account_messages(account, max_results=max_results)
+        import_invoices = bool(payload.get("import_invoices", True))
+        result = sync_account_messages(account, max_results=max_results, import_invoices=import_invoices)
         return jsonify({"data": result, "error": None})
     except GmailServiceError as e:
         return jsonify({"data": None, "error": str(e)}), 400

@@ -311,7 +311,7 @@ function App() {
     setError(null)
     setSavingAccountId(id)
     try {
-      const result = await syncAccount(id, { max_results: 50 })
+      const result = await syncAccount(id, { max_results: 50, import_invoices: true })
       setSyncSummaries((prev) => ({ ...prev, [id]: result }))
       await loadAccounts()
     } catch (err) {
@@ -518,10 +518,42 @@ function App() {
                         <strong>Utolso szinkron:</strong> {syncSummaries[account.id].synced_at}
                         <br />
                         Talalt levelek: {syncSummaries[account.id].scanned_messages}
-                        {' · '}
+                        {' | '}
                         Fizetesi link gyanus: {syncSummaries[account.id].payment_link_hits}
-                        {' · '}
+                        {' | '}
                         Szamla kulcsszo gyanus: {syncSummaries[account.id].invoice_hint_hits}
+                        <br />
+                        Importalt szamlak: {syncSummaries[account.id].imported_invoices || 0}
+                        {' | '}
+                        Kihagyva (nincs osszeg): {syncSummaries[account.id].skipped_no_amount || 0}
+                        {' | '}
+                        Kihagyva (duplikalt): {syncSummaries[account.id].skipped_duplicates || 0}
+                        {(syncSummaries[account.id].sample_messages || []).length > 0 && (
+                          <div className="gmail-sync-messages">
+                            {(syncSummaries[account.id].sample_messages || []).map((msg) => (
+                              <div className="gmail-sync-message" key={msg.id}>
+                                <div className="gmail-sync-meta">
+                                  <strong>{msg.subject || '(Nincs targy)'}</strong>
+                                  {msg.from ? ` - ${msg.from}` : ''}
+                                </div>
+                                <div className="gmail-sync-snippet">{msg.snippet || '(Nincs kivonat)'}</div>
+                                <div className="gmail-sync-snippet">
+                                  Osszeg becsles: {msg.amount_guess || '-'} {msg.currency_guess || ''}
+                                </div>
+                                {msg.payment_link_guess && (
+                                  <div className="gmail-sync-snippet">
+                                    Link becsles: {msg.payment_link_guess}
+                                  </div>
+                                )}
+                                <div className="gmail-sync-flags">
+                                  {msg.has_payment_link ? 'Fizetesi link gyanus' : ''}
+                                  {msg.has_payment_link && msg.has_invoice_hint ? ' | ' : ''}
+                                  {msg.has_invoice_hint ? 'Szamla kulcsszo gyanus' : ''}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

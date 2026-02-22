@@ -157,11 +157,11 @@ def start_account_oauth(account_id: int):
     return _handle_response(response)
 
 
-def sync_account(account_id: int, max_results: int = 50):
+def sync_account(account_id: int, max_results: int = 50, import_invoices: bool = True):
     """Run Gmail sync preview for one account."""
     response = requests.post(
         f"{API_BASE}/accounts/{account_id}/sync",
-        json={"max_results": max_results},
+        json={"max_results": max_results, "import_invoices": import_invoices},
         headers={"Content-Type": "application/json"},
         timeout=60,
     )

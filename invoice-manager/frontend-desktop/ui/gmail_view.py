@@ -52,17 +52,69 @@ def build_gmail_account_card(
 
     summary_block: ft.Control
     if sync_summary:
+        sample_controls: list[ft.Control] = []
+        for msg in (sync_summary.get("sample_messages") or [])[:20]:
+            flags: list[str] = []
+            if msg.get("has_payment_link"):
+                flags.append("Fizetesi link gyanus")
+            if msg.get("has_invoice_hint"):
+                flags.append("Szamla kulcsszo gyanus")
+
+            sample_controls.append(
+                ft.Container(
+                    content=ft.Column(
+                        [
+                            ft.Text(str(msg.get("subject") or "(Nincs targy)"), size=12, weight=ft.FontWeight.W_600),
+                            ft.Text(str(msg.get("from") or ""), size=11, color=ft.colors.GREY_700),
+                            ft.Text(str(msg.get("snippet") or "(Nincs kivonat)"), size=11, color=ft.colors.GREY_800),
+                            ft.Text(
+                                "Osszeg becsles: {amount} {currency}".format(
+                                    amount=msg.get("amount_guess") if msg.get("amount_guess") is not None else "-",
+                                    currency=msg.get("currency_guess") or "",
+                                ),
+                                size=11,
+                                color=ft.colors.GREY_800,
+                            ),
+                            ft.Text(
+                                "Link becsles: {link}".format(link=msg.get("payment_link_guess")),
+                                size=11,
+                                color=ft.colors.BLUE_700,
+                            )
+                            if msg.get("payment_link_guess")
+                            else ft.Container(height=0),
+                            ft.Text(" | ".join(flags), size=10, color=ft.colors.BLUE_700) if flags else ft.Container(height=0),
+                        ],
+                        spacing=2,
+                    ),
+                    bgcolor=ft.colors.WHITE,
+                    border=ft.border.all(1, ft.colors.BLUE_GREY_100),
+                    border_radius=6,
+                    padding=8,
+                )
+            )
+
         summary_block = ft.Container(
-            content=ft.Text(
-                "Utolso szinkron: {synced}\nTalalt levelek: {scanned} | Fizetesi link gyanus: {links} | "
-                "Szamla kulcsszo gyanus: {hints}".format(
-                    synced=sync_summary.get("synced_at", "-"),
-                    scanned=sync_summary.get("scanned_messages", 0),
-                    links=sync_summary.get("payment_link_hits", 0),
-                    hints=sync_summary.get("invoice_hint_hits", 0),
-                ),
-                size=12,
-                color=ft.colors.GREY_800,
+            content=ft.Column(
+                [
+                    ft.Text(
+                        "Utolso szinkron: {synced}\nTalalt levelek: {scanned} | Fizetesi link gyanus: {links} | "
+                        "Szamla kulcsszo gyanus: {hints}\n"
+                        "Importalt szamlak: {imported} | Kihagyva (nincs osszeg): {no_amount} | "
+                        "Kihagyva (duplikalt): {duplicates}".format(
+                            synced=sync_summary.get("synced_at", "-"),
+                            scanned=sync_summary.get("scanned_messages", 0),
+                            links=sync_summary.get("payment_link_hits", 0),
+                            hints=sync_summary.get("invoice_hint_hits", 0),
+                            imported=sync_summary.get("imported_invoices", 0),
+                            no_amount=sync_summary.get("skipped_no_amount", 0),
+                            duplicates=sync_summary.get("skipped_duplicates", 0),
+                        ),
+                        size=12,
+                        color=ft.colors.GREY_800,
+                    ),
+                    ft.Column(sample_controls, spacing=6) if sample_controls else ft.Container(height=0),
+                ],
+                spacing=8,
             ),
             bgcolor=ft.colors.BLUE_GREY_50,
             border_radius=6,

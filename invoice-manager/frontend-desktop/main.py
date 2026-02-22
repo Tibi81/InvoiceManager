@@ -360,7 +360,7 @@ def main(page: ft.Page):
 
     def sync_account_preview(account_id: int):
         try:
-            result = sync_account(account_id, max_results=50)
+            result = sync_account(account_id, max_results=50, import_invoices=True)
             gmail_sync_summaries[account_id] = result
             load_gmail()
         except Exception as exc:
