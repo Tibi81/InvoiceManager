@@ -27,13 +27,13 @@ def create_app(config_name='default'):
     os.makedirs(app.config['PDF_STORAGE_PATH'], exist_ok=True)
     os.makedirs(app.config['TEMP_PATH'], exist_ok=True)
     
-    # Register blueprints (will add these later)
-    # from api.invoices import invoices_bp
-    # from api.accounts import accounts_bp
-    # from api.recurring import recurring_bp
-    # app.register_blueprint(invoices_bp, url_prefix='/api/invoices')
-    # app.register_blueprint(accounts_bp, url_prefix='/api/accounts')
-    # app.register_blueprint(recurring_bp, url_prefix='/api/recurring')
+    # Register blueprints
+    from api.invoices import invoices_bp
+    from api.accounts import accounts_bp
+    from api.recurring import recurring_bp
+    app.register_blueprint(invoices_bp, url_prefix='/api/invoices')
+    app.register_blueprint(accounts_bp, url_prefix='/api/accounts')
+    app.register_blueprint(recurring_bp, url_prefix='/api/recurring')
     
     # Health check endpoint
     @app.route('/health')
