@@ -3,7 +3,7 @@ Recurring invoices API endpoints.
 """
 from flask import Blueprint, jsonify, request
 
-from app import db
+from extensions import db
 from models.database import RecurringInvoice
 
 recurring_bp = Blueprint("recurring", __name__)

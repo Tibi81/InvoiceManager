@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, send_file
 import io
 
-from app import db
+from extensions import db
 from models.database import Invoice
 from services.qr_generator import generate_payment_qr
 
