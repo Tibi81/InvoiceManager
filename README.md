@@ -208,7 +208,7 @@ This project is in **early development**. Features may change, and the codebase 
 
 ## 📞 Support
 
-- 📧 Email: your.email@example.com
+- 📧 Email: kisss.tibi@gmail.com
 - 🐛 Issues: [GitHub Issues](https://github.com/yourusername/invoice-manager/issues)
 - 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/invoice-manager/discussions)
 
