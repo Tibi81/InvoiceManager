@@ -1,0 +1,61 @@
+.recurring-card {
+  background: #ffffff;
+  color: #282c34;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recurring-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.recurring-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.recurring-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.badge.paused {
+  background: #fff3e0;
+  color: #e65100;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+}
+
+.recurring-card-body .amount {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2e7d32;
+  margin: 4px 0;
+}
+
+.recurring-card-body .day {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 2px 0;
+}
+
+.recurring-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.recurring-card-actions .btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}

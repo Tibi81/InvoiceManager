@@ -58,3 +58,48 @@ def delete_invoice(invoice_id: int):
 def get_qr_url(invoice_id: int) -> str:
     """Get URL for invoice QR code image."""
     return f"{API_BASE}/invoices/{invoice_id}/qr"
+
+
+def get_recurring():
+    """Fetch all recurring invoice templates."""
+    response = requests.get(f"{API_BASE}/recurring", timeout=5)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def create_recurring(data: dict):
+    """Create a new recurring invoice template."""
+    response = requests.post(
+        f"{API_BASE}/recurring",
+        json=data,
+        headers={"Content-Type": "application/json"},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def update_recurring(recurring_id: int, data: dict):
+    """Update a recurring invoice template."""
+    response = requests.put(
+        f"{API_BASE}/recurring/{recurring_id}",
+        json=data,
+        headers={"Content-Type": "application/json"},
+        timeout=5,
+    )
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def delete_recurring(recurring_id: int):
+    """Delete a recurring invoice template."""
+    response = requests.delete(f"{API_BASE}/recurring/{recurring_id}", timeout=5)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def pause_recurring(recurring_id: int):
+    """Toggle pause/unpause for recurring invoice."""
+    response = requests.post(f"{API_BASE}/recurring/{recurring_id}/pause", timeout=5)
+    response.raise_for_status()
+    return _handle_response(response)

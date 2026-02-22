@@ -69,3 +69,26 @@ export const createRecurring = async (data) => {
   });
   return handleResponse(response);
 };
+
+export const updateRecurring = async (id, data) => {
+  const response = await fetch(`${API_BASE}/recurring/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
+
+export const deleteRecurring = async (id) => {
+  const response = await fetch(`${API_BASE}/recurring/${id}`, {
+    method: 'DELETE',
+  });
+  return handleResponse(response);
+};
+
+export const pauseRecurring = async (id) => {
+  const response = await fetch(`${API_BASE}/recurring/${id}/pause`, {
+    method: 'POST',
+  });
+  return handleResponse(response);
+};
