@@ -92,3 +92,54 @@ export const pauseRecurring = async (id) => {
   });
   return handleResponse(response);
 };
+
+export const getAccounts = async () => {
+  const response = await fetch(`${API_BASE}/accounts`);
+  return handleResponse(response);
+};
+
+export const getAccountDefaults = async () => {
+  const response = await fetch(`${API_BASE}/accounts/defaults`);
+  return handleResponse(response);
+};
+
+export const createAccount = async (data) => {
+  const response = await fetch(`${API_BASE}/accounts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
+
+export const updateAccountFilters = async (id, data) => {
+  const response = await fetch(`${API_BASE}/accounts/${id}/filters`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};
+
+export const deleteAccount = async (id) => {
+  const response = await fetch(`${API_BASE}/accounts/${id}`, {
+    method: 'DELETE',
+  });
+  return handleResponse(response);
+};
+
+export const startAccountOAuth = async (id) => {
+  const response = await fetch(`${API_BASE}/accounts/${id}/oauth/start`, {
+    method: 'POST',
+  });
+  return handleResponse(response);
+};
+
+export const syncAccount = async (id, data = {}) => {
+  const response = await fetch(`${API_BASE}/accounts/${id}/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(response);
+};

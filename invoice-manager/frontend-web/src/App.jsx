@@ -10,11 +10,19 @@ import {
   updateRecurring,
   deleteRecurring,
   pauseRecurring,
+  getAccounts,
+  createAccount,
+  updateAccountFilters,
+  deleteAccount,
+  getAccountDefaults,
+  startAccountOAuth,
+  syncAccount,
 } from './services/api'
 import InvoiceCard from './components/InvoiceCard'
 import AddInvoiceForm from './components/AddInvoiceForm'
 import RecurringCard from './components/RecurringCard'
 import RecurringForm from './components/RecurringForm'
+import GmailAccountCard from './components/GmailAccountCard'
 import './App.css'
 import './components/InvoiceCard.css'
 import './components/AddInvoiceForm.css'
@@ -22,12 +30,13 @@ import './components/AddInvoiceForm.css'
 const INVOICE_TABS = [
   { id: 'unpaid', label: 'Fizetetlen', status: 'unpaid' },
   { id: 'paid', label: 'Fizetett', status: 'paid' },
-  { id: 'all', label: 'Összes', status: 'all' },
+  { id: 'all', label: 'Osszes', status: 'all' },
 ]
 
 const MAIN_VIEWS = [
-  { id: 'invoices', label: 'Számlák' },
-  { id: 'recurring', label: 'Ismétlődő számlák' },
+  { id: 'invoices', label: 'Szamlak' },
+  { id: 'recurring', label: 'Ismetlodo szamlak' },
+  { id: 'gmail', label: 'Gmail szures' },
 ]
 
 function App() {
@@ -35,12 +44,18 @@ function App() {
   const [mainView, setMainView] = useState('invoices')
   const [invoices, setInvoices] = useState([])
   const [recurring, setRecurring] = useState([])
+  const [accounts, setAccounts] = useState([])
+  const [accountDefaults, setAccountDefaults] = useState(null)
   const [activeTab, setActiveTab] = useState('unpaid')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [markingPaidId, setMarkingPaidId] = useState(null)
+  const [savingAccountId, setSavingAccountId] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [showRecurringForm, setShowRecurringForm] = useState(false)
+  const [showAddAccountForm, setShowAddAccountForm] = useState(false)
+  const [newAccountEmail, setNewAccountEmail] = useState('')
+  const [syncSummaries, setSyncSummaries] = useState({})
   const [editingRecurring, setEditingRecurring] = useState(null)
 
   const loadHealth = async () => {
@@ -81,15 +96,50 @@ function App() {
     }
   }
 
+  const loadAccounts = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [accountsData, defaultsData] = await Promise.all([
+        getAccounts(),
+        getAccountDefaults(),
+      ])
+      setAccounts(accountsData || [])
+      setAccountDefaults(defaultsData)
+    } catch (err) {
+      setError(err.message)
+      setAccounts([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     loadHealth()
   }, [])
 
   useEffect(() => {
-    if (apiStatus) {
-      if (mainView === 'invoices') loadInvoices()
-      else loadRecurring()
+    const params = new URLSearchParams(window.location.search)
+    const oauthStatus = params.get('gmail_oauth')
+    if (!oauthStatus) return
+
+    if (oauthStatus === 'success') {
+      setError(null)
+      loadAccounts()
+    } else if (oauthStatus === 'error') {
+      setError(params.get('error') || 'OAuth hiba')
     }
+
+    const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`
+    window.history.replaceState({}, document.title, cleanUrl)
+  }, [])
+
+  useEffect(() => {
+    if (!apiStatus) return
+
+    if (mainView === 'invoices') loadInvoices()
+    if (mainView === 'recurring') loadRecurring()
+    if (mainView === 'gmail') loadAccounts()
   }, [apiStatus, activeTab, mainView])
 
   const handleMarkPaid = async (invoiceId) => {
@@ -106,7 +156,7 @@ function App() {
   }
 
   const handleDelete = async (invoiceId) => {
-    if (!window.confirm('Biztosan törölni szeretnéd ezt a számlát?')) return
+    if (!window.confirm('Biztosan torolni szeretned ezt a szamlat?')) return
     setError(null)
     try {
       await deleteInvoice(invoiceId)
@@ -167,7 +217,7 @@ function App() {
   }
 
   const handleDeleteRecurring = async (id) => {
-    if (!window.confirm('Biztosan törölni szeretnéd ezt az ismétlődő számlát?')) return
+    if (!window.confirm('Biztosan torolni szeretned ezt az ismetlodo szamlat?')) return
     setError(null)
     try {
       await deleteRecurring(id)
@@ -182,17 +232,106 @@ function App() {
     setShowRecurringForm(true)
   }
 
+  const handleAddAccount = async (event) => {
+    event.preventDefault()
+    const email = newAccountEmail.trim()
+    if (!email) return
+
+    setError(null)
+    setSavingAccountId('new')
+    try {
+      await createAccount({
+        email,
+        label_name: accountDefaults?.default_label_name,
+        gmail_query: accountDefaults?.default_gmail_query,
+      })
+      setNewAccountEmail('')
+      setShowAddAccountForm(false)
+      await loadAccounts()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingAccountId(null)
+    }
+  }
+
+  const handleSaveAccount = async (id, payload) => {
+    setError(null)
+    setSavingAccountId(id)
+    try {
+      await updateAccountFilters(id, payload)
+      await loadAccounts()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingAccountId(null)
+    }
+  }
+
+  const handleToggleAccount = async (id, isActive) => {
+    await handleSaveAccount(id, { is_active: isActive })
+  }
+
+  const handleDeleteAccount = async (id) => {
+    if (!window.confirm('Biztosan torolni szeretned ezt a Gmail fiokot?')) return
+
+    setError(null)
+    setSavingAccountId(id)
+    try {
+      await deleteAccount(id)
+      await loadAccounts()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingAccountId(null)
+    }
+  }
+
+  const handleConnectAccount = async (id) => {
+    setError(null)
+    setSavingAccountId(id)
+    try {
+      const data = await startAccountOAuth(id)
+      if (data?.mode === 'desktop') {
+        await loadAccounts()
+        return
+      }
+      if (!data?.authorization_url) {
+        throw new Error('Nem sikerult OAuth URL-t letrehozni')
+      }
+      window.location.href = data.authorization_url
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingAccountId(null)
+    }
+  }
+
+  const handleSyncAccount = async (id) => {
+    setError(null)
+    setSavingAccountId(id)
+    try {
+      const result = await syncAccount(id, { max_results: 50 })
+      setSyncSummaries((prev) => ({ ...prev, [id]: result }))
+      await loadAccounts()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSavingAccountId(null)
+    }
+  }
+
   if (!apiStatus) {
     return (
       <div className="App">
         <header className="App-header">
-          <h1>📧 Számla Kezelő</h1>
+          <h1>Szamla Kezelo</h1>
           <div className="status-card">
-            <h2>Backend Állapot</h2>
-            <p>❌ Backend nem elérhető</p>
-            <p>Indítsd el a Flask API-t: <code>cd backend && python app.py</code></p>
+            <h2>Backend allapot</h2>
+            <p>Backend nem erheto el</p>
+            <p>Inditsd el a Flask API-t: <code>cd backend && python app.py</code></p>
             <button className="btn btn-secondary" onClick={loadHealth}>
-              Újrapróbálás
+              Ujraprobalas
             </button>
           </div>
         </header>
@@ -203,11 +342,11 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>📧 Számla Kezelő</h1>
+        <h1>Szamla Kezelo</h1>
         <p className="subtitle">Invoice Manager</p>
 
         <div className="status-badge">
-          ✅ Backend elérhető · v{apiStatus.version}
+          Backend elerheto · v{apiStatus.version}
         </div>
 
         <div className="main-tabs">
@@ -241,10 +380,10 @@ function App() {
                 className="btn btn-primary"
                 onClick={() => setShowAddForm(!showAddForm)}
               >
-                {showAddForm ? 'Mégse' : '+ Új számla'}
+                {showAddForm ? 'Megse' : '+ Uj szamla'}
               </button>
               <button className="btn btn-secondary" onClick={loadInvoices}>
-                🔄 Frissítés
+                Frissites
               </button>
             </div>
 
@@ -257,9 +396,9 @@ function App() {
 
             <div className="invoice-list">
               {loading ? (
-                <p>Betöltés...</p>
+                <p>Betoltes...</p>
               ) : invoices.length === 0 ? (
-                <p className="empty-state">Nincs megjeleníthető számla</p>
+                <p className="empty-state">Nincs megjelenitheto szamla</p>
               ) : (
                 invoices.map((invoice) => (
                   <InvoiceCard
@@ -285,10 +424,10 @@ function App() {
                   setShowRecurringForm(!showRecurringForm)
                 }}
               >
-                {showRecurringForm ? 'Mégse' : '+ Új ismétlődő'}
+                {showRecurringForm ? 'Megse' : '+ Uj ismetlodo'}
               </button>
               <button className="btn btn-secondary" onClick={loadRecurring}>
-                🔄 Frissítés
+                Frissites
               </button>
             </div>
 
@@ -305,9 +444,9 @@ function App() {
 
             <div className="invoice-list">
               {loading ? (
-                <p>Betöltés...</p>
+                <p>Betoltes...</p>
               ) : recurring.length === 0 ? (
-                <p className="empty-state">Nincs ismétlődő számla</p>
+                <p className="empty-state">Nincs ismetlodo szamla</p>
               ) : (
                 recurring.map((rec) => (
                   <RecurringCard
@@ -323,9 +462,78 @@ function App() {
           </>
         )}
 
+        {mainView === 'gmail' && (
+          <>
+            <div className="actions">
+              <button
+                className="btn btn-primary"
+                onClick={() => setShowAddAccountForm(!showAddAccountForm)}
+              >
+                {showAddAccountForm ? 'Megse' : '+ Uj Gmail fiok'}
+              </button>
+              <button className="btn btn-secondary" onClick={loadAccounts}>
+                Frissites
+              </button>
+            </div>
+
+            {showAddAccountForm && (
+              <form className="account-add-form" onSubmit={handleAddAccount}>
+                <input
+                  type="email"
+                  value={newAccountEmail}
+                  onChange={(e) => setNewAccountEmail(e.target.value)}
+                  placeholder="pelda@gmail.com"
+                  required
+                />
+                <button className="btn btn-primary" type="submit" disabled={savingAccountId === 'new'}>
+                  Hozzaadas
+                </button>
+              </form>
+            )}
+
+            <div className="gmail-guide">
+              <strong>Javaslat:</strong> Gmail-ben hozz letre egy kulon cimket (pl. InvoiceManager),
+              es csak azokra a levelekre alkalmazd, amik szamlat vagy fizetesi linket tartalmaznak.
+            </div>
+
+            <div className="invoice-list">
+              {loading ? (
+                <p>Betoltes...</p>
+              ) : accounts.length === 0 ? (
+                <p className="empty-state">Nincs Gmail fiok beallitva</p>
+              ) : (
+                accounts.map((account) => (
+                  <div key={account.id}>
+                    <GmailAccountCard
+                      account={account}
+                      onSave={handleSaveAccount}
+                      onDelete={handleDeleteAccount}
+                      onToggleActive={handleToggleAccount}
+                      onConnect={handleConnectAccount}
+                      onSync={handleSyncAccount}
+                      isSaving={savingAccountId === account.id}
+                    />
+                    {syncSummaries[account.id] && (
+                      <div className="gmail-sync-summary">
+                        <strong>Utolso szinkron:</strong> {syncSummaries[account.id].synced_at}
+                        <br />
+                        Talalt levelek: {syncSummaries[account.id].scanned_messages}
+                        {' · '}
+                        Fizetesi link gyanus: {syncSummaries[account.id].payment_link_hits}
+                        {' · '}
+                        Szamla kulcsszo gyanus: {syncSummaries[account.id].invoice_hint_hits}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
         {error && (
           <div className="error-message">
-            ⚠️ {error}
+            {error}
           </div>
         )}
       </header>

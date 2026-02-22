@@ -5,17 +5,25 @@ from __future__ import annotations
 import flet as ft
 
 from services.api import (
+    create_account,
     create_invoice,
     create_recurring,
+    delete_account,
     delete_invoice,
     delete_recurring,
+    get_account_defaults,
+    get_accounts,
     get_health,
     get_invoices,
     get_recurring,
     mark_paid,
     pause_recurring,
+    start_account_oauth,
+    sync_account,
+    update_account_filters,
     update_recurring,
 )
+from ui.gmail_view import build_gmail_account_card
 from ui.invoice_dialogs import open_add_invoice_dialog, show_invoice_delete_dialog
 from ui.invoice_view import build_invoice_card
 from ui.recurring_dialogs import open_recurring_dialog, show_recurring_delete_dialog
@@ -35,12 +43,16 @@ def main(page: ft.Page):
     main_view = "invoices"
     invoices: list[dict] = []
     recurring_list: list[dict] = []
+    gmail_accounts: list[dict] = []
+    gmail_defaults: dict = {}
+    gmail_sync_summaries: dict[int, dict] = {}
     active_tab = "unpaid"
 
     invoice_list_ref = ft.Ref[ft.Column]()
     status_text_ref = ft.Ref[ft.Text]()
     invoices_toolbar_ref = ft.Ref[ft.Row]()
     recurring_toolbar_ref = ft.Ref[ft.Row]()
+    gmail_toolbar_ref = ft.Ref[ft.Row]()
 
     def show_error(msg: str):
         page.snack_bar = ft.SnackBar(
@@ -128,6 +140,44 @@ def main(page: ft.Page):
                 )
         page.update()
 
+    def build_gmail_list():
+        if not invoice_list_ref.current:
+            return
+        invoice_list_ref.current.controls.clear()
+
+        if not api_status["ok"]:
+            invoice_list_ref.current.controls.append(
+                ft.Container(
+                    content=ft.Text(
+                        "Inditsd el a backendet: cd backend && python app.py",
+                        size=14,
+                        color=ft.colors.GREY_600,
+                    ),
+                    padding=20,
+                )
+            )
+        elif not gmail_accounts:
+            invoice_list_ref.current.controls.append(
+                ft.Container(
+                    content=ft.Text("Nincs Gmail fiok beallitva", size=14, color=ft.colors.GREY_600),
+                    padding=20,
+                )
+            )
+        else:
+            for account in gmail_accounts:
+                invoice_list_ref.current.controls.append(
+                    build_gmail_account_card(
+                        account=account,
+                        on_save=save_account_filters,
+                        on_toggle_active=toggle_account_active,
+                        on_delete=confirm_delete_account,
+                        on_connect=connect_account,
+                        on_sync=sync_account_preview,
+                        sync_summary=gmail_sync_summaries.get(account["id"]),
+                    )
+                )
+        page.update()
+
     def load_invoices():
         nonlocal invoices
         try:
@@ -146,6 +196,16 @@ def main(page: ft.Page):
             recurring_list = []
             show_error(str(exc))
         build_recurring_list()
+
+    def load_gmail():
+        nonlocal gmail_accounts, gmail_defaults
+        try:
+            gmail_accounts = get_accounts() or []
+            gmail_defaults = get_account_defaults() or {}
+        except Exception as exc:
+            gmail_accounts = []
+            show_error(str(exc))
+        build_gmail_list()
 
     def do_mark_paid(invoice_id: int):
         try:
@@ -207,6 +267,105 @@ def main(page: ft.Page):
             create_recurring(data)
         load_recurring()
 
+    def open_add_gmail_dialog(_e):
+        email_field = ft.TextField(label="Gmail cim", hint_text="pelda@gmail.com", autofocus=True)
+
+        def close_dialog(_ev=None):
+            page.dialog.open = False
+            page.update()
+
+        def submit(_ev):
+            email = (email_field.value or "").strip()
+            if not email:
+                show_error("Email kotelezo")
+                return
+            try:
+                create_account(
+                    {
+                        "email": email,
+                        "label_name": gmail_defaults.get("default_label_name"),
+                        "gmail_query": gmail_defaults.get("default_gmail_query"),
+                    }
+                )
+                close_dialog()
+                load_gmail()
+            except Exception as exc:
+                show_error(str(exc))
+
+        page.dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Uj Gmail fiok"),
+            content=email_field,
+            actions=[
+                ft.TextButton("Megse", on_click=close_dialog),
+                ft.ElevatedButton("Hozzaadas", on_click=submit),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.dialog.open = True
+        page.update()
+
+    def save_account_filters(account_id: int, label_name: str, gmail_query: str):
+        try:
+            update_account_filters(
+                account_id,
+                {
+                    "label_name": label_name,
+                    "gmail_query": gmail_query,
+                },
+            )
+            load_gmail()
+        except Exception as exc:
+            show_error(str(exc))
+
+    def toggle_account_active(account_id: int, is_active: bool):
+        try:
+            update_account_filters(account_id, {"is_active": is_active})
+            load_gmail()
+        except Exception as exc:
+            show_error(str(exc))
+
+    def confirm_delete_account(account_id: int):
+        def close_dialog(_ev=None):
+            page.dialog.open = False
+            page.update()
+
+        def do_delete(_ev=None):
+            try:
+                delete_account(account_id)
+                close_dialog()
+                load_gmail()
+            except Exception as exc:
+                show_error(str(exc))
+
+        page.dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Gmail fiok torlese"),
+            content=ft.Text("Biztosan torolni szeretned ezt a Gmail fiokot?"),
+            actions=[
+                ft.TextButton("Megse", on_click=close_dialog),
+                ft.ElevatedButton("Torles", on_click=do_delete),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+        )
+        page.dialog.open = True
+        page.update()
+
+    def connect_account(account_id: int):
+        try:
+            start_account_oauth(account_id)
+            load_gmail()
+        except Exception as exc:
+            show_error(str(exc))
+
+    def sync_account_preview(account_id: int):
+        try:
+            result = sync_account(account_id, max_results=50)
+            gmail_sync_summaries[account_id] = result
+            load_gmail()
+        except Exception as exc:
+            show_error(str(exc))
+
     def on_tab_change(e):
         nonlocal active_tab
         if e.control.selected:
@@ -219,11 +378,14 @@ def main(page: ft.Page):
             main_view = next(iter(e.control.selected), "invoices")
         if main_view == "invoices":
             load_invoices()
-        else:
+        elif main_view == "recurring":
             load_recurring()
-        if invoices_toolbar_ref.current and recurring_toolbar_ref.current:
+        else:
+            load_gmail()
+        if invoices_toolbar_ref.current and recurring_toolbar_ref.current and gmail_toolbar_ref.current:
             invoices_toolbar_ref.current.visible = main_view == "invoices"
             recurring_toolbar_ref.current.visible = main_view == "recurring"
+            gmail_toolbar_ref.current.visible = main_view == "gmail"
         page.update()
 
     def refresh_all(_e):
@@ -238,8 +400,10 @@ def main(page: ft.Page):
                 status_text_ref.current.color = ft.colors.RED_700
         if main_view == "invoices":
             load_invoices()
-        else:
+        elif main_view == "recurring":
             load_recurring()
+        else:
+            load_gmail()
         page.update()
 
     api_status = check_backend()
@@ -259,6 +423,7 @@ def main(page: ft.Page):
         segments=[
             ft.Segment(value="invoices", label=ft.Text("Szamlak")),
             ft.Segment(value="recurring", label=ft.Text("Ismetlodo")),
+            ft.Segment(value="gmail", label=ft.Text("Gmail")),
         ],
     )
 
@@ -273,6 +438,16 @@ def main(page: ft.Page):
         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
         wrap=True,
         ref=recurring_toolbar_ref,
+        visible=False,
+    )
+    gmail_toolbar = ft.Row(
+        [
+            ft.ElevatedButton("+ Uj Gmail fiok", on_click=open_add_gmail_dialog),
+            ft.Text("Csak szamlas/fizetesi linkes levelek szurese", size=12, color=ft.colors.GREY_700),
+        ],
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        wrap=True,
+        ref=gmail_toolbar_ref,
         visible=False,
     )
 
@@ -302,6 +477,7 @@ def main(page: ft.Page):
                     ft.Row([main_view_selector], alignment=ft.MainAxisAlignment.CENTER),
                     invoices_toolbar,
                     recurring_toolbar,
+                    gmail_toolbar,
                     ft.Container(
                         content=ft.Column(ref=invoice_list_ref, scroll=ft.ScrollMode.AUTO),
                         expand=True,

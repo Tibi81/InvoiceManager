@@ -6,7 +6,12 @@ from typing import Callable
 
 import flet as ft
 
-from ui.formatters import format_amount
+from ui.formatters import (
+    format_amount,
+    format_date,
+    get_next_recurring_due_date,
+    get_recurring_due_status_text,
+)
 
 
 def build_recurring_card(
@@ -27,6 +32,9 @@ def build_recurring_card(
             )
         )
 
+    next_due_date = get_next_recurring_due_date(rec["day_of_month"])
+    due_status = get_recurring_due_status_text(rec["day_of_month"], rec.get("is_active", False))
+
     return ft.Card(
         content=ft.Container(
             content=ft.Column(
@@ -45,6 +53,19 @@ def build_recurring_card(
                         color=ft.colors.GREEN_800,
                     ),
                     ft.Text(f"Honap {rec['day_of_month']}. napjan", size=13, color=ft.colors.GREY_700),
+                    ft.Text(
+                        f"Kovetkezo esedekesseg: {format_date(next_due_date.isoformat())}",
+                        size=13,
+                        color=ft.colors.GREY_700,
+                    ),
+                    ft.Text(
+                        due_status,
+                        size=13,
+                        weight=ft.FontWeight.W_600,
+                        color=ft.colors.BLUE_700,
+                    )
+                    if due_status
+                    else ft.Container(height=0),
                     ft.Row(
                         [
                             ft.OutlinedButton(
@@ -70,4 +91,3 @@ def build_recurring_card(
             padding=16,
         ),
     )
-

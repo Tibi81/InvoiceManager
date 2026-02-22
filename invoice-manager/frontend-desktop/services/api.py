@@ -103,3 +103,67 @@ def pause_recurring(recurring_id: int):
     response = requests.post(f"{API_BASE}/recurring/{recurring_id}/pause", timeout=5)
     response.raise_for_status()
     return _handle_response(response)
+
+
+def get_accounts():
+    """Fetch Gmail account settings."""
+    response = requests.get(f"{API_BASE}/accounts", timeout=10)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def get_account_defaults():
+    """Fetch default Gmail filter settings."""
+    response = requests.get(f"{API_BASE}/accounts/defaults", timeout=10)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def create_account(data: dict):
+    """Create Gmail account settings."""
+    response = requests.post(
+        f"{API_BASE}/accounts",
+        json=data,
+        headers={"Content-Type": "application/json"},
+        timeout=15,
+    )
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def update_account_filters(account_id: int, data: dict):
+    """Update Gmail account filter settings."""
+    response = requests.put(
+        f"{API_BASE}/accounts/{account_id}/filters",
+        json=data,
+        headers={"Content-Type": "application/json"},
+        timeout=15,
+    )
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def delete_account(account_id: int):
+    """Delete Gmail account settings."""
+    response = requests.delete(f"{API_BASE}/accounts/{account_id}", timeout=10)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def start_account_oauth(account_id: int):
+    """Start OAuth connection for one Gmail account."""
+    response = requests.post(f"{API_BASE}/accounts/{account_id}/oauth/start", timeout=180)
+    response.raise_for_status()
+    return _handle_response(response)
+
+
+def sync_account(account_id: int, max_results: int = 50):
+    """Run Gmail sync preview for one account."""
+    response = requests.post(
+        f"{API_BASE}/accounts/{account_id}/sync",
+        json={"max_results": max_results},
+        headers={"Content-Type": "application/json"},
+        timeout=60,
+    )
+    response.raise_for_status()
+    return _handle_response(response)

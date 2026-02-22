@@ -159,3 +159,43 @@
   color: rgba(255, 255, 255, 0.8);
   padding: 40px 20px;
 }
+
+.account-add-form {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.account-add-form input {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+}
+
+.gmail-guide {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.gmail-sync-summary {
+  width: 100%;
+  max-width: 560px;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  margin: -4px 0 10px;
+}

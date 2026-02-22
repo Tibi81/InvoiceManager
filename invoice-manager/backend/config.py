@@ -22,10 +22,14 @@ class Config:
     # Gmail API
     GMAIL_CLIENT_ID = os.getenv('GMAIL_CLIENT_ID')
     GMAIL_CLIENT_SECRET = os.getenv('GMAIL_CLIENT_SECRET')
+    GMAIL_OAUTH_MODE = os.getenv('GMAIL_OAUTH_MODE', 'desktop')  # desktop | web
     GMAIL_SCOPES = [
         'https://www.googleapis.com/auth/gmail.readonly',
         'https://www.googleapis.com/auth/gmail.modify'
     ]
+    GMAIL_REDIRECT_URI = os.getenv('GMAIL_REDIRECT_URI', 'http://localhost:5000/api/accounts/oauth/callback')
+    GMAIL_SYNC_MAX_RESULTS = int(os.getenv('GMAIL_SYNC_MAX_RESULTS', 50))
+    FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'http://localhost:5173')
     
     # Application
     MAX_GMAIL_ACCOUNTS = int(os.getenv('MAX_GMAIL_ACCOUNTS', 2))
