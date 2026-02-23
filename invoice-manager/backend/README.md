@@ -46,6 +46,29 @@ Run automated tests:
 pytest -q
 ```
 
+## Database Migrations (Alembic)
+
+Run latest schema:
+```bash
+alembic upgrade head
+```
+
+Create a new migration after model changes:
+```bash
+alembic revision --autogenerate -m "describe change"
+alembic upgrade head
+```
+
+Rollback one migration:
+```bash
+alembic downgrade -1
+```
+
+If you already have a local database with current schema and want to start migration tracking:
+```bash
+alembic stamp head
+```
+
 ## Project Structure
 
 ```
