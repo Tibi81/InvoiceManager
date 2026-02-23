@@ -35,6 +35,8 @@ class Config:
     MAX_GMAIL_ACCOUNTS = int(os.getenv('MAX_GMAIL_ACCOUNTS', 2))
     PDF_STORAGE_PATH = os.getenv('PDF_STORAGE_PATH', 'invoices/')
     TEMP_PATH = os.getenv('TEMP_PATH', 'temp/')
+    RECURRING_SCHEDULER_ENABLED = os.getenv('RECURRING_SCHEDULER_ENABLED', 'True').lower() == 'true'
+    RECURRING_SCHEDULER_INTERVAL_SECONDS = int(os.getenv('RECURRING_SCHEDULER_INTERVAL_SECONDS', 300))
     
     # Timezone
     TIMEZONE = os.getenv('TIMEZONE', 'Europe/Budapest')

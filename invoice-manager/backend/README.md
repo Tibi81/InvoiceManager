@@ -80,3 +80,6 @@ backend/
 - All dates stored in UTC
 - API responses follow format: `{"data": ..., "error": null}`
 - CORS enabled for `localhost:3000` (React) and `localhost:5173` (Vite)
+- Recurring scheduler runs in background by default
+  - `RECURRING_SCHEDULER_ENABLED=true|false`
+  - `RECURRING_SCHEDULER_INTERVAL_SECONDS=300`

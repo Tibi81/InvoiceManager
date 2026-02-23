@@ -7,6 +7,17 @@ from flask_cors import CORS
 from config import config
 from extensions import db
 import os
+import atexit
+
+
+def _should_start_scheduler(app: Flask) -> bool:
+    if app.config.get("TESTING"):
+        return False
+    if not app.config.get("RECURRING_SCHEDULER_ENABLED", True):
+        return False
+    if app.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        return False
+    return True
 
 
 def create_app(config_name='default'):
@@ -31,6 +42,17 @@ def create_app(config_name='default'):
     app.register_blueprint(invoices_bp, url_prefix='/api/invoices')
     app.register_blueprint(accounts_bp, url_prefix='/api/accounts')
     app.register_blueprint(recurring_bp, url_prefix='/api/recurring')
+
+    if _should_start_scheduler(app):
+        from services.recurring_scheduler import RecurringScheduler
+
+        scheduler = RecurringScheduler(
+            app=app,
+            interval_seconds=app.config.get("RECURRING_SCHEDULER_INTERVAL_SECONDS", 300),
+        )
+        scheduler.start()
+        app.extensions["recurring_scheduler"] = scheduler
+        atexit.register(scheduler.stop)
     
     # Health check endpoint
     @app.route('/health')
