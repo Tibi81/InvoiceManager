@@ -41,6 +41,11 @@ curl http://localhost:5000/
 
 Or use Postman/Insomnia for a better experience.
 
+Run automated tests:
+```bash
+pytest -q
+```
+
 ## Project Structure
 
 ```

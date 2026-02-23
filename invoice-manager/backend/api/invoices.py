@@ -1,7 +1,7 @@
 """
 Invoices API endpoints.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, send_file
 import io
 
@@ -10,6 +10,13 @@ from models.database import Invoice
 from services.qr_generator import generate_payment_qr
 
 invoices_bp = Blueprint("invoices", __name__)
+
+
+def _get_invoice_or_404(invoice_id: int):
+    invoice = db.session.get(Invoice, invoice_id)
+    if invoice is None:
+        return None, (jsonify({"data": None, "error": "Invoice not found"}), 404)
+    return invoice, None
 
 
 @invoices_bp.route("", methods=["GET"])
@@ -46,7 +53,9 @@ def get_invoices():
 def get_invoice(invoice_id: int):
     """Get single invoice details."""
     try:
-        invoice = Invoice.query.get_or_404(invoice_id)
+        invoice, err = _get_invoice_or_404(invoice_id)
+        if err:
+            return err
         return jsonify({
             "data": invoice.to_dict(),
             "error": None,
@@ -128,9 +137,11 @@ def create_invoice():
 def mark_paid(invoice_id: int):
     """Mark invoice as paid."""
     try:
-        invoice = Invoice.query.get_or_404(invoice_id)
+        invoice, err = _get_invoice_or_404(invoice_id)
+        if err:
+            return err
         invoice.paid = True
-        invoice.paid_date = datetime.utcnow()
+        invoice.paid_date = datetime.now(timezone.utc).replace(tzinfo=None)
         db.session.commit()
 
         return jsonify({
@@ -150,7 +161,9 @@ def mark_paid(invoice_id: int):
 def get_qr_code(invoice_id: int):
     """Generate QR code for invoice payment."""
     try:
-        invoice = Invoice.query.get_or_404(invoice_id)
+        invoice, err = _get_invoice_or_404(invoice_id)
+        if err:
+            return err
         if not invoice.iban:
             return jsonify({
                 "data": None,
@@ -177,7 +190,9 @@ def get_qr_code(invoice_id: int):
 def delete_invoice(invoice_id: int):
     """Delete an invoice."""
     try:
-        invoice = Invoice.query.get_or_404(invoice_id)
+        invoice, err = _get_invoice_or_404(invoice_id)
+        if err:
+            return err
         db.session.delete(invoice)
         db.session.commit()
 

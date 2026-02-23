@@ -39,6 +39,13 @@ def _account_to_dict(account: GmailAccount) -> dict:
     return base
 
 
+def _get_account_or_404(account_id: int):
+    account = db.session.get(GmailAccount, account_id)
+    if account is None:
+        return None, (jsonify({"data": None, "error": "Gmail account not found"}), 404)
+    return account, None
+
+
 @accounts_bp.route("", methods=["GET"])
 def get_accounts():
     """List all Gmail accounts with invoice filter settings."""
@@ -115,7 +122,9 @@ def create_account():
 def update_account_filters(account_id: int):
     """Update label/query filters for one Gmail account."""
     try:
-        account = GmailAccount.query.get_or_404(account_id)
+        account, err = _get_account_or_404(account_id)
+        if err:
+            return err
         data = request.get_json() or {}
 
         current_label, current_query = extract_filter_settings(account.credentials_json)
@@ -152,7 +161,9 @@ def update_account_filters(account_id: int):
 def start_account_oauth(account_id: int):
     """Start OAuth for one Gmail account."""
     try:
-        account = GmailAccount.query.get_or_404(account_id)
+        account, err = _get_account_or_404(account_id)
+        if err:
+            return err
         oauth_mode = str(current_app.config.get("GMAIL_OAUTH_MODE", "desktop")).strip().lower()
         if oauth_mode == "desktop":
             connected = connect_account_local_oauth(account)
@@ -220,7 +231,9 @@ def oauth_callback():
 def sync_account(account_id: int):
     """Run Gmail sync preview using saved filters for one account."""
     try:
-        account = GmailAccount.query.get_or_404(account_id)
+        account, err = _get_account_or_404(account_id)
+        if err:
+            return err
         payload = request.get_json(silent=True) or {}
         try:
             max_results = int(payload.get("max_results", current_app.config.get("GMAIL_SYNC_MAX_RESULTS", 50)))
@@ -239,7 +252,9 @@ def sync_account(account_id: int):
 def delete_account(account_id: int):
     """Delete Gmail account settings record."""
     try:
-        account = GmailAccount.query.get_or_404(account_id)
+        account, err = _get_account_or_404(account_id)
+        if err:
+            return err
         db.session.delete(account)
         db.session.commit()
 

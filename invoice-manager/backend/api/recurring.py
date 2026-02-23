@@ -54,6 +54,13 @@ def _validate_recurring_data(data: dict, for_update: bool = False) -> tuple[dict
     return result, None
 
 
+def _get_recurring_or_404(recurring_id: int):
+    recurring = db.session.get(RecurringInvoice, recurring_id)
+    if recurring is None:
+        return None, (jsonify({"data": None, "error": "Recurring invoice not found"}), 404)
+    return recurring, None
+
+
 @recurring_bp.route("", methods=["GET"])
 def get_recurring():
     """List all recurring invoice templates."""
@@ -71,7 +78,9 @@ def get_recurring():
 def get_recurring_one(recurring_id: int):
     """Get recurring invoice details."""
     try:
-        recurring = RecurringInvoice.query.get_or_404(recurring_id)
+        recurring, err = _get_recurring_or_404(recurring_id)
+        if err:
+            return err
         return jsonify({
             "data": recurring.to_dict(),
             "error": None,
@@ -114,7 +123,9 @@ def create_recurring():
 def update_recurring(recurring_id: int):
     """Update recurring invoice template."""
     try:
-        recurring = RecurringInvoice.query.get_or_404(recurring_id)
+        recurring, err = _get_recurring_or_404(recurring_id)
+        if err:
+            return err
         data = request.get_json() or {}
 
         validated, err = _validate_recurring_data(data, for_update=True)
@@ -145,7 +156,9 @@ def update_recurring(recurring_id: int):
 def pause_recurring(recurring_id: int):
     """Toggle pause/unpause for recurring invoice."""
     try:
-        recurring = RecurringInvoice.query.get_or_404(recurring_id)
+        recurring, err = _get_recurring_or_404(recurring_id)
+        if err:
+            return err
         recurring.is_active = not recurring.is_active
         db.session.commit()
 
@@ -165,7 +178,9 @@ def pause_recurring(recurring_id: int):
 def delete_recurring(recurring_id: int):
     """Delete recurring invoice template."""
     try:
-        recurring = RecurringInvoice.query.get_or_404(recurring_id)
+        recurring, err = _get_recurring_or_404(recurring_id)
+        if err:
+            return err
         db.session.delete(recurring)
         db.session.commit()
 

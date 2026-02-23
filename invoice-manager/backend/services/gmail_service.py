@@ -371,7 +371,7 @@ def sync_account_messages(account: GmailAccount, max_results: int = 50, import_i
 
         payment_link = _extract_payment_link(combined_text)
         amount, currency = _extract_amount_and_currency(combined_text)
-        due_date = _extract_due_date(combined_text) or (datetime.utcnow().date() + timedelta(days=7))
+        due_date = _extract_due_date(combined_text) or (datetime.now(timezone.utc).date() + timedelta(days=7))
 
         previews.append(
             {

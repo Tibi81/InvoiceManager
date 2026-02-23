@@ -1,8 +1,13 @@
 """
 Database models for Invoice Manager.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from extensions import db
+
+
+def _utc_now_naive() -> datetime:
+    """Return UTC now as naive datetime for DB fields."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class GmailAccount(db.Model):
@@ -15,7 +20,7 @@ class GmailAccount(db.Model):
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_sync = db.Column(db.DateTime, nullable=True)
     credentials_json = db.Column(db.Text, nullable=False)  # Encrypted OAuth tokens
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utc_now_naive, nullable=False)
     
     # Relationships
     invoices = db.relationship('Invoice', backref='gmail_account', lazy=True)
@@ -52,7 +57,7 @@ class Invoice(db.Model):
     iban = db.Column(db.String(34), nullable=True)  # For QR code generation
     is_recurring = db.Column(db.Boolean, default=False, nullable=False)
     recurring_invoice_id = db.Column(db.Integer, db.ForeignKey('recurring_invoices.id'), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utc_now_naive, nullable=False)
     
     def to_dict(self):
         """Convert to dictionary."""
@@ -92,7 +97,7 @@ class RecurringInvoice(db.Model):
     day_of_month = db.Column(db.Integer, nullable=False)  # 1-31
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     last_generated = db.Column(db.Date, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=_utc_now_naive, nullable=False)
     
     # Relationships
     invoices = db.relationship('Invoice', backref='recurring_template', lazy=True)
