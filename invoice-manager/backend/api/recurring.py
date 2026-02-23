@@ -1,15 +1,24 @@
 """
 Recurring invoices API endpoints.
 """
-from flask import Blueprint, jsonify, request
+from datetime import datetime, timezone
+
+from flask import Blueprint, current_app, jsonify, request
 
 from extensions import db
 from models.database import RecurringInvoice
+from services.recurring_scheduler import (
+    get_recurring_run_status,
+    run_recurring_generation_for_date,
+)
 
 recurring_bp = Blueprint("recurring", __name__)
 
 
-def _validate_recurring_data(data: dict, for_update: bool = False) -> tuple[dict | None, str | None]:
+def _validate_recurring_data(
+    data: dict,
+    for_update: bool = False,
+) -> tuple[dict | None, str | None]:
     """Validate recurring invoice data. Returns (validated_data, error_message)."""
     result = {}
 
@@ -57,7 +66,10 @@ def _validate_recurring_data(data: dict, for_update: bool = False) -> tuple[dict
 def _get_recurring_or_404(recurring_id: int):
     recurring = db.session.get(RecurringInvoice, recurring_id)
     if recurring is None:
-        return None, (jsonify({"data": None, "error": "Recurring invoice not found"}), 404)
+        return None, (
+            jsonify({"data": None, "error": "Recurring invoice not found"}),
+            404,
+        )
     return recurring, None
 
 
@@ -97,8 +109,15 @@ def create_recurring():
         validated, err = _validate_recurring_data(data, for_update=False)
         if err:
             return jsonify({"data": None, "error": err}), 400
-        if "name" not in validated or "amount" not in validated or "day_of_month" not in validated:
-            return jsonify({"data": None, "error": "Name, amount and day_of_month are required"}), 400
+        if (
+            "name" not in validated
+            or "amount" not in validated
+            or "day_of_month" not in validated
+        ):
+            return jsonify({
+                "data": None,
+                "error": "Name, amount and day_of_month are required",
+            }), 400
 
         recurring = RecurringInvoice(
             name=validated["name"],
@@ -191,3 +210,47 @@ def delete_recurring(recurring_id: int):
     except Exception as e:
         db.session.rollback()
         return jsonify({"data": None, "error": str(e)}), 500
+
+
+@recurring_bp.route("/run-now", methods=["POST"])
+def run_recurring_now():
+    """Trigger recurring invoice generation immediately."""
+    try:
+        payload = request.get_json(silent=True) or {}
+        run_date_raw = payload.get("run_date")
+        if run_date_raw:
+            try:
+                run_date = datetime.strptime(str(run_date_raw), "%Y-%m-%d").date()
+            except ValueError:
+                return jsonify({"data": None, "error": "run_date must be YYYY-MM-DD"}), 400
+        else:
+            run_date = datetime.now(timezone.utc).date()
+
+        result = run_recurring_generation_for_date(run_date)
+        return jsonify({
+            "data": {
+                "run_date": run_date.isoformat(),
+                "result": result,
+            },
+            "error": None,
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"data": None, "error": str(e)}), 500
+
+
+@recurring_bp.route("/run-status", methods=["GET"])
+def recurring_run_status():
+    """Return scheduler and last-run status for recurring generation."""
+    status = get_recurring_run_status()
+    status["scheduler_enabled"] = bool(
+        current_app.config.get("RECURRING_SCHEDULER_ENABLED", True)
+    )
+    status["scheduler_interval_seconds"] = int(current_app.config.get(
+        "RECURRING_SCHEDULER_INTERVAL_SECONDS",
+        300,
+    ))
+    return jsonify({
+        "data": status,
+        "error": None,
+    })
