@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, current_app, jsonify, request
 
 from extensions import db
-from models.database import RecurringInvoice
+from models.database import Invoice, RecurringInvoice
+from services.recurring_generator import forecast_recurring_due_dates
 from services.recurring_scheduler import (
     get_recurring_run_status,
     run_recurring_generation_for_date,
@@ -209,6 +210,68 @@ def delete_recurring(recurring_id: int):
         })
     except Exception as e:
         db.session.rollback()
+        return jsonify({"data": None, "error": str(e)}), 500
+
+
+@recurring_bp.route("/<int:recurring_id>/forecast", methods=["GET"])
+def recurring_forecast(recurring_id: int):
+    """Forecast upcoming due dates for one recurring template."""
+    try:
+        recurring, err = _get_recurring_or_404(recurring_id)
+        if err:
+            return err
+
+        months_raw = request.args.get("months", "3")
+        try:
+            months = int(months_raw)
+        except (TypeError, ValueError):
+            return jsonify({"data": None, "error": "months must be an integer"}), 400
+        if months < 1 or months > 24:
+            return jsonify({"data": None, "error": "months must be between 1 and 24"}), 400
+
+        from_date_raw = request.args.get("from_date")
+        if from_date_raw:
+            try:
+                from_date = datetime.strptime(from_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                return jsonify({"data": None, "error": "from_date must be YYYY-MM-DD"}), 400
+        else:
+            from_date = datetime.now(timezone.utc).date()
+
+        due_dates = forecast_recurring_due_dates(
+            template=recurring,
+            months=months,
+            from_date=from_date,
+        )
+
+        existing_dates = {
+            inv.due_date.isoformat()
+            for inv in Invoice.query.filter(
+                Invoice.recurring_invoice_id == recurring.id,
+                Invoice.is_recurring.is_(True),
+                Invoice.due_date.in_(due_dates),
+            ).all()
+        }
+
+        forecast = [
+            {
+                "due_date": due_date.isoformat(),
+                "already_generated": due_date.isoformat() in existing_dates,
+            }
+            for due_date in due_dates
+        ]
+
+        return jsonify({
+            "data": {
+                "recurring_id": recurring.id,
+                "is_active": recurring.is_active,
+                "months": months,
+                "from_date": from_date.isoformat(),
+                "forecast": forecast,
+            },
+            "error": None,
+        })
+    except Exception as e:
         return jsonify({"data": None, "error": str(e)}), 500
 
 

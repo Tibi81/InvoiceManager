@@ -58,6 +58,28 @@ def _iter_due_dates(template: RecurringInvoice, run_date: date):
         cursor = _next_month(cursor)
 
 
+def forecast_recurring_due_dates(
+    template: RecurringInvoice,
+    months: int,
+    from_date: date,
+) -> list[date]:
+    """Forecast next due dates for recurring template from a given date."""
+    if months <= 0:
+        return []
+
+    anchor_date = max(from_date, template.created_at.date())
+    cursor = _month_start(anchor_date)
+    due_dates: list[date] = []
+
+    while len(due_dates) < months:
+        due_date = _due_date_for_month(cursor.year, cursor.month, template.day_of_month)
+        if due_date >= anchor_date:
+            due_dates.append(due_date)
+        cursor = _next_month(cursor)
+
+    return due_dates
+
+
 def generate_due_recurring_invoices(run_date: date) -> dict:
     """Generate missing recurring invoices up to run_date in an idempotent way."""
     stats = GenerationStats()
